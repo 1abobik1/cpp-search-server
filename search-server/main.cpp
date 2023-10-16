@@ -49,7 +49,7 @@ struct Document {
 
     Document() = default;
 
-    Document(int id_, double relevance_, int rating_) : id(id_), relevance(relevance_), rating(rating_)
+    Document(const int id_,const double relevance_,const int rating_) : id(id_), relevance(relevance_), rating(rating_)
     {
 
     }
@@ -89,12 +89,11 @@ public:
     explicit SearchServer(const StringContainer& stop_words)
         : stop_words_(MakeUniqueNonEmptyStrings(stop_words))
 	{
-        if (all_of(stop_words.begin(), stop_words.end(), IsValidWord)) {}
-
-    	else
+        if (!all_of(stop_words.begin(), stop_words.end(), IsValidWord))
         {
-            throw invalid_argument("It is forbidden to use special characters"s);
+	        throw invalid_argument("It is forbidden to use special characters"s);
         }
+        
     }
 
     explicit SearchServer(const string& stop_words_text)
@@ -133,23 +132,6 @@ public:
 
     template <typename DocumentPredicate>
     vector<Document> FindTopDocuments(const string& raw_query, DocumentPredicate document_predicate) const {
-
-        if(raw_query.empty())
-        {
-            throw invalid_argument("Query empty "s);
-        }
-
-        for (const string& word : SplitIntoWords(raw_query))
-        {
-            if (!IsValidWord(word))
-            {
-                throw invalid_argument("It is forbidden to use special characters "s);
-            }
-            if (!IsValidMinusWord(word))
-            {
-                throw invalid_argument("Presence of more than one minus sign before words or missing text after the minus symbol "s);
-            }
-        }
 
     	const Query query = ParseQuery(raw_query);
         auto matched_documents = FindAllDocuments(query, document_predicate);
@@ -190,18 +172,6 @@ public:
             throw invalid_argument("Query empty "s);
         }
 
-        for(const string& word : SplitIntoWords(raw_query))
-        {
-	        if(!IsValidWord(word))
-	        {
-                throw invalid_argument("It is forbidden to use special characters "s);
-	        }
-            if(!IsValidMinusWord(word))
-            {
-                throw invalid_argument("Presence of more than one minus sign before words or missing text after the minus symbol "s);
-            }
-        }
-
     	const Query query = ParseQuery(raw_query);
         vector<string> matched_words;
         for (const string& word : query.plus_words) {
@@ -230,7 +200,7 @@ public:
     {
         if ((index) >= 0 && (index < GetDocumentCount()))
         {
-            return documents_index_[index];
+            return documents_index_.at(index);
         }
     	throw out_of_range("The index of the transmitted document is out of range (0; number of documents )"s);
     }
@@ -321,16 +291,17 @@ private:
             throw invalid_argument(R"(Space or no text after the "-" sign )");
         }
 
-        if(text[-1] == '-')
+        for (const string& word : SplitIntoWords(text))
         {
-	        throw invalid_argument(R"(Double "-" sign in negative keyword )");
+            if (!IsValidWord(word))
+            {
+                throw invalid_argument("It is forbidden to use special characters "s);
+            }
+            if (!IsValidMinusWord(word))
+            {
+                throw invalid_argument("Presence of more than one minus sign before words or missing text after the minus symbol "s);
+            }
         }
-
-        if(!IsValidWord(text))
-        {
-	        throw invalid_argument("It is forbidden to use special characters "s);
-        }
-
         return {
             text,
             is_minus,
