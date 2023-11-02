@@ -20,7 +20,7 @@ enum class DocumentStatus {
     REMOVED,
 };
 
-std::ostream& operator<<(std::ostream& out, const Document& document) { 
+inline std::ostream& operator<<(std::ostream& out, const Document& document) { 
 
     out << "{ document_id = "s << document.id 
 
